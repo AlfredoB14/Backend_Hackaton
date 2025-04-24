@@ -27,7 +27,7 @@ def orthanc_request(path, method="GET", data=None, params=None):
 @app.route('/api/studies/<study_id>/images', methods=['GET'])
 def get_study_images(study_id):
     try:
-        quality = request.args.get('quality', 90, type=int)
+        quality = request.args.get('quality', 50, type=int)
         
         # Obtener lista de instancias del estudio con detalles
         response = orthanc_request(f"/studies/{study_id}/instances")
