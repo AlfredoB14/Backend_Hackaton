@@ -24,29 +24,59 @@ def orthanc_request(path, method="GET", data=None, params=None):
         print(f"Error en la solicitud a Orthanc: {e}")
         return None
 
-# Endpoint para obtener todas las URLs de imágenes renderizadas de un estudio
 @app.route('/api/studies/<study_id>/images', methods=['GET'])
 def get_study_images(study_id):
     try:
-        # Obtener calidad deseada para las imágenes (por defecto 90)
         quality = request.args.get('quality', 90, type=int)
         
-        # Obtener lista de instancias del estudio
+        # Obtener lista de instancias del estudio con detalles
         response = orthanc_request(f"/studies/{study_id}/instances")
         if not response:
             return jsonify({"error": "No se pudo obtener las instancias del estudio"}), 500
         
         instances = response.json()
         
-        # Crear lista de URLs para renderizar cada instancia
-        image_urls = []
+        # Obtener todos los IDs de series únicos presentes en el estudio
+        series_ids = {instance["ParentSeries"] for instance in instances}
+        
+        # Mapear cada serie a su SeriesNumber
+        series_numbers = {}
+        for series_id in series_ids:
+            series_response = orthanc_request(f"/series/{series_id}")
+            if series_response:
+                series_data = series_response.json()
+                series_number_str = series_data.get('MainDicomTags', {}).get('SeriesNumber', '0')
+                try:
+                    series_numbers[series_id] = int(series_number_str)
+                except ValueError:
+                    series_numbers[series_id] = 0  # Valor por defecto si hay error
+        
+        # Preparar lista de instancias con sus números de serie e instancia
+        instances_with_numbers = []
         for instance in instances:
-            instance_id = instance['ID'] if isinstance(instance, dict) else instance
-            # Crear URL relativa para esta imagen
-            image_url = f"https://orthancpinguland-production.up.railway.app/instances/{instance_id}/frames/0/rendered?quality={quality}"
+            instance_info = {
+                "id": instance["ID"],
+                "series_id": instance["ParentSeries"],
+                "series_number": series_numbers.get(instance["ParentSeries"], 0),
+                "instance_number": int(instance.get('MainDicomTags', {}).get('InstanceNumber', '0') or '0')
+            }
+            instances_with_numbers.append(instance_info)
+        
+        # Ordenar primero por SeriesNumber y luego por InstanceNumber
+        sorted_instances = sorted(
+            instances_with_numbers,
+            key=lambda x: (x["series_number"], x["instance_number"])
+        )
+        
+        # Generar URLs en el orden correcto
+        image_urls = []
+        for instance in sorted_instances:
+            image_url = f"{ORTHANC_URL}instances/{instance['id']}/frames/0/rendered?quality={quality}"
             image_urls.append({
-                "instanceId": instance_id,
-                "imageUrl": image_url
+                "instanceId": instance['id'],
+                "imageUrl": image_url,
+                "seriesNumber": instance["series_number"],
+                "instanceNumber": instance["instance_number"]
             })
         
         return jsonify({
