@@ -1,3 +1,5 @@
+#PINGULAND - Ibero Puebla
+#Hackathon TalentLand 2025 - Track SaludDigna
 # API de Imágenes Médicas DICOM
 
 ## Descripción
