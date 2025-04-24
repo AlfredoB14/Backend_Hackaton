@@ -6,7 +6,7 @@ app = Flask(__name__)
 CORS(app)  # Habilitar CORS para permitir solicitudes desde el frontend
 
 # Configuración de Orthanc
-ORTHANC_URL = "https://orthancpinguland-production.up.railway.app/"  # Cambia esto a la URL de tu servidor Orthanc
+ORTHANC_URL = "https://orthancpinguland-production.up.railway.app"  # Cambia esto a la URL de tu servidor Orthanc
 
 # Función para realizar solicitudes a Orthanc
 def orthanc_request(path, method="GET", data=None, params=None):
@@ -71,7 +71,7 @@ def get_study_images(study_id):
         # Generar URLs en el orden correcto
         image_urls = []
         for instance in sorted_instances:
-            image_url = f"{ORTHANC_URL}instances/{instance['id']}/frames/0/rendered?quality={quality}"
+            image_url = f"{ORTHANC_URL}/instances/{instance['id']}/frames/0/rendered?quality={quality}"
             image_urls.append({
                 "instanceId": instance['id'],
                 "imageUrl": image_url,
